@@ -20,6 +20,7 @@ class Flappy:
         self.pipe_image = None
         self.pipes = []
         self.bird_scale = None
+        self.score = 0
 
     def init(self, background, bird_images, pipe_image, bird_scale=(50, 40)):
         self.set_background(background)
@@ -100,6 +101,7 @@ class Flappy:
         pygame.quit()
         file1.close()
         file0.close()
+        print("score = {}".format(self.score))
 
     def smart_run(self, clf, mean, std):
 
@@ -143,6 +145,7 @@ class Flappy:
                 crashed = True
 
         pygame.quit()
+        print("score = {}".format(self.score))
 
     def get_sample(self, mean, std, Is=False):
         pipes = []
@@ -209,6 +212,7 @@ class Flappy:
         for i in range(no_of_pipes):
             if not self.pipes[i].is_seen():
                 zombie_pipes.append(i)
+                self.score += 1
                 continue
             self.pipes[i].draw(self.display)
 

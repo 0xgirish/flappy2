@@ -34,6 +34,8 @@ def load_data():
     T0 = np.array(T0)
     # T1, T0 = T1[:5000, :], T0[:5000, :]
     np.random.shuffle(T0)
+    length1 = T1.shape[0]
+    T0 = T0[:length1, :]
     T = np.append(T1, T0, axis=0)
     np.random.shuffle(T)
     # print(T[0])
@@ -58,7 +60,7 @@ def model(model):
         tree.export_graphviz(clf, out_file="tree.dot")
     elif model == "svm":
         print("Intializing SVC")
-        clf = SVC(max_iter=10000, C=1.0, tol=0.001, random_state=0)
+        clf = SVC(max_iter=5000)
         print("Training...")
         clf.fit(X_t, Y)
         print("completed")
