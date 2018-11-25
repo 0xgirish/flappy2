@@ -97,7 +97,7 @@ class Neural:
         gen = neural_object.encode()
 
         for i in range(len(gen)):
-            if np.random.rand(0,100) < MUTATION_RATE*100:
+            if random.randint(0,100) <= MUTATION_RATE*100:
                 gen[i] = np.random.uniform(-1,1)
 
         new_object = Neural(gen)
@@ -111,29 +111,60 @@ class Neural:
         gen2 = object2.encode()
 
         for val in range(len(gen1)):
-            if np.random.rand(0,100) < CROSSOVER_RATE*100:
+            if random.randint(0,100) <= CROSSOVER_RATE*100:
                 gen1[val], gen2[val] = gen2[val], gen1[val]
 
-        return [Neural(gen1), Neural(gen2)]
+	return Neural(gen1) if random.randint(0,1) == 0 else Neural(gen2)
+
+        #return [Neural(gen1), Neural(gen2)]
 
     @classmethod
     def create_new_generation(cls, neural_list):
 
         new_generation = []
 
-        elite_neural = Neural.selection(neural_list)
-        new_generation.extend(elite_neural)
+	if len(neural_list) == 0:
 
-        # Apply Mutation for some birds
-        for i in range(round(MUTATION_RATE*POPULATION)):
-            new_generation.append(Neural.mutation(neural_list[i]))
+		for i in range(POPULATION):
+			Obj = Neural(None)
+			new_generation.append(Obj)
 
-        # Apply Crossover
-        for i in range(round((MUTATION_RATE * 100 / POPULATION)),
-                       round(((MUTATION_RATE * 100 / POPULATION) + (CROSSOVER_RATE * 100 / POPULATION)))):
-            new_generation.append(Neural.crossover(neural_list[i], elite_neural[random.randint(0,len(elite_neural) -1)])[0])
+	else:
+		elite_neural = Neural.selection(neural_list)
+		new_generation.extend(elite_neural)
 
-        for i in range(POPULATION - len(new_generation)):
-            new_generation.append(Neural(None))
+		top_units = len(new_generation)
+		# Apply Mutation for some birds
+		for i in range(top_units, POPULATION):
 
+			offspring = None
+			if i == top_units :
+				#new_generation.append(Neural.crossover(new_generation[0],new_generation[1]))
+				offspring = Neural.crossover(elite_neural[0],elite_neural[1])
+
+			elif i < POPULATION - 2:
+				parentA = random.randint(0, len(elite_neural) - 1)
+				parentB = random.randint(0, len(elite_neural) - 1)
+
+				offspring = Neural.crossover(elite_neural[parentA], elite_neural[parentB])
+				#new_generation.append(Neural.crossover(elite_neural[parentA], elite_neural[parentB]))
+			else:
+				parentA = random.randint(0,len(elite_neural) - 1)
+				offspring = elite_neural[parentA]
+
+			offspring = Neural.mutate(offspring)
+			new_generation.append(offspring)
+
+		'''
+		for i in range(round(MUTATION_RATE*POPULATION)):
+		    new_generation.append(Neural.mutation(neural_list[i]))
+
+		# Apply Crossover
+		for i in range(round((MUTATION_RATE * 100 / POPULATION)),
+		               round(((MUTATION_RATE * 100 / POPULATION) + (CROSSOVER_RATE * 100 / POPULATION)))):
+		    new_generation.append(Neural.crossover(neural_list[i], elite_neural[random.randint(0,len(elite_neural) -1)])[0])
+
+		for i in range(POPULATION - len(new_generation)):
+		    new_generation.append(Neural(None))
+	'''
         return new_generation
