@@ -60,7 +60,7 @@ class Flappy:
 
         while not crashed:
             action0 = -1
-            data0 = self.get_sample(0, 1, True)
+            data0 = self.get_sample(Is=True)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     crashed = True
@@ -105,7 +105,10 @@ class Flappy:
         file0.close()
         print("score = {}".format(self.score))
 
-    def smart_run(self, clf, mean=0, std=1):
+    def smart_run(self, clf, mean=0, std=1, filename0="zeros2.txt", filename1="ones2.txt", is_collect=True):
+
+        file0 = open(filename0, "a")
+        file1 = open(filename1, "a")
 
         crashed = False
 
@@ -116,8 +119,12 @@ class Flappy:
         self.pipes.append(Pipe(self.pipe_image, x=200))
         # self.bird.v = -7
 
-        while not crashed:
+        data_freq = 20
+        is_compl = data_freq
 
+        while not crashed:
+            action0 = -1
+            data0 = self.get_sample(Is=True)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     crashed = True
@@ -126,7 +133,16 @@ class Flappy:
                 sample = self.get_sample(bird_index=i, mean=mean, std=std)
                 action = clf[i].predict(sample)[0]
                 if action == 1:
+                    action0 = 1
+                    data = self.get_sample(Is=True)
+                    if is_collect:
+                        self.collect_data(file1, action, data)
                     self.birds[i].jump()
+
+            if is_compl % data_freq == 0:
+                if action0 == -1 and is_collect:
+                    self.collect_data(file0, action0, data0)
+                print("score = {}\r".format(self.score))
 
             if is_add % freq_pipe is 0:
                 self.pipes.append(Pipe(self.pipe_image))
@@ -138,9 +154,11 @@ class Flappy:
                 crashed = True
 
         pygame.quit()
+        file1.close()
+        file0.close()
         print("score = {}".format(self.score))
 
-    def get_sample(self, mean, std, Is=False, bird_index=0):
+    def get_sample(self, mean=0, std=1, Is=False, bird_index=0):
         pipes = []
         for pipe in self.pipes:
             if pipe.x + pipe.width + 10 < self.birds[bird_index].x:

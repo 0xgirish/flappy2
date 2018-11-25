@@ -2,7 +2,7 @@
 
 class Bird:
 
-    def __init__(self, image, velocity=0, gravity=0.3, jump_speed=6, window_size=(800, 600), y=None):
+    def __init__(self, image, velocity=0, gravity=0.3, jump_speed=7.4, window_size=(800, 600), y=None):
         self.image = image
         self.frame_no = 0
         self.cycle = True
