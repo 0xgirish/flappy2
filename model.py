@@ -32,7 +32,7 @@ def load_data():
 
     T1 = np.array(T1)
     T0 = np.array(T0)
-    # T1, T0 = T1[:5000, :], T0[:5000, :]
+    #T1, T0 = T1[:, :], T0[:, :]
     np.random.shuffle(T0)
     T = np.append(T1, T0, axis=0)
     np.random.shuffle(T)
