@@ -7,7 +7,7 @@ from pipes import Pipe
 
 class Flappy:
 
-    def __init__(self, window_size=(380, 600), fps=60):
+    def __init__(self, window_size=(380, 600), fps=60, no_of_birds=1):
         pygame.init()
 
         self.display = pygame.display.set_mode(window_size)
@@ -16,17 +16,19 @@ class Flappy:
         self.fps = fps
         self.window_size = window_size
         self.background = None
-        self.bird = None
+        self.birds = []
         self.pipe_image = None
         self.pipes = []
         self.bird_scale = None
         self.score = 0
+        self.no_of_birds = no_of_birds
 
     def init(self, background, bird_images, pipe_image, bird_scale=(50, 40)):
         self.set_background(background)
 
         bird_frames = Flappy.get_frames(bird_images, bird_scale)
-        self.bird = Bird(bird_frames)
+        for i in range(self.no_of_birds):
+            self.birds.append(Bird(bird_frames, y=i*50))
         self.bird_scale = bird_scale
 
         pipe_image = pygame.image.load(pipe_image)
@@ -65,7 +67,7 @@ class Flappy:
 
                 if event.type == pygame.KEYDOWN:
                     data = self.get_sample(0, 1, True)
-                    self.bird.jump()
+                    self.birds[0].jump()
                     action1 = 1
                     action0 = 1
 
@@ -103,7 +105,7 @@ class Flappy:
         file0.close()
         print("score = {}".format(self.score))
 
-    def smart_run(self, clf, mean, std):
+    def smart_run(self, clf, mean=0, std=1):
 
         crashed = False
 
@@ -114,26 +116,17 @@ class Flappy:
         self.pipes.append(Pipe(self.pipe_image, x=200))
         # self.bird.v = -7
 
-        clf_freq = 1
-        is_clf = clf_freq
-        action = -1
-
         while not crashed:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     crashed = True
 
-            clf_action = self.predict(clf, mean, std)
-            if clf_action == 1:
-                action = 1
-
-            if is_clf % clf_freq == 0:
+            for i in range(self.no_of_birds):
+                sample = self.get_sample(bird_index=i, mean=mean, std=std)
+                action = clf[i].predict(sample)[0]
                 if action == 1:
-                    self.bird.jump()
-                    action = -1
-            is_clf = (is_clf + 1) % clf_freq
-            clf_freq = 10
+                    self.birds[i].jump()
 
             if is_add % freq_pipe is 0:
                 self.pipes.append(Pipe(self.pipe_image))
@@ -147,19 +140,19 @@ class Flappy:
         pygame.quit()
         print("score = {}".format(self.score))
 
-    def get_sample(self, mean, std, Is=False):
+    def get_sample(self, mean, std, Is=False, bird_index=0):
         pipes = []
         for pipe in self.pipes:
-            if pipe.x + pipe.width + 10 < self.bird.x:
+            if pipe.x + pipe.width + 10 < self.birds[bird_index].x:
                 continue
             pipes.append(pipe)
-        v = self.bird.v
+        v = self.birds[bird_index].v
         if len(pipes) >= 1:
-            dx, dy = (pipes[0].x - self.bird.x), (self.bird.y - pipes[0].height - 100)
+            dx, dy = (pipes[0].x - self.birds[bird_index].x), (self.birds[bird_index].y - pipes[0].height - 100)
         else:
-            dx, dy = 380, self.bird.y - 100
+            dx, dy = 380, self.birds[bird_index].y - 100
 
-        h = self.window_size[1] - self.bird.y
+        h = self.window_size[1] - self.birds[bird_index].y
         sample = "{} {} {} {}".format(v, h, dx, dy)
         if Is:
             return sample
@@ -177,15 +170,15 @@ class Flappy:
         line = "{} {}\n".format(data, action)
         file.write(line)
 
-    def is_collision(self):
-        if self.bird.y + self.bird_scale[1] > self.window_size[1]:
+    def is_collision(self, bird_index=0):
+        if self.birds[bird_index].y + self.bird_scale[1] > self.window_size[1]:
             return True
 
-        if self.bird.y < 0:
+        if self.birds[bird_index].y < 0:
             return True
 
         for pipe in self.pipes:
-            if pipe.is_touching(self.bird, self.bird_scale):
+            if pipe.is_touching(self.birds[bird_index], self.bird_scale):
                 return True
         else:
             return False
@@ -198,7 +191,8 @@ class Flappy:
         draw background, bird and pipes, update display
         """
         self.display.blit(self.background, (0, 0))
-        self.bird.draw(self.display, start)
+        for i in range(self.no_of_birds):
+            self.birds[i].draw(self.display, start)
         self.draw_pipes()
 
         pygame.display.update()

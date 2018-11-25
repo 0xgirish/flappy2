@@ -1,15 +1,19 @@
 import numpy as np
 import random
 
+from settings import POPULATION, SELECTION_PERCENTAGE, CROSSOVER_RATE, MUTATION_RATE
+from settings import INPUT_LAYER, HIDDEN_LAYER, OUTPUT_LAYER
+
+
 class Neural:
 
     def __init__(self, genome):
 
         # One Hidden Layer Model consists of (3, 6, 1) plus bias terms
 
-        self.INPUT_LAYER = 3
-        self.HIDDEN_LAYER = 6
-        self.OUTPUT_LAYER = 1
+        self.INPUT_LAYER = INPUT_LAYER
+        self.HIDDEN_LAYER = HIDDEN_LAYER
+        self.OUTPUT_LAYER = OUTPUT_LAYER
 
         self.w1 = np.random.uniform(-1,1,(self.HIDDEN_LAYER, self.INPUT_LAYER + 1))
         self.w2 = np.random.uniform(-1,1,(self.OUTPUT_LAYER,self.HIDDEN_LAYER + 1))
@@ -22,7 +26,6 @@ class Neural:
 
         return 1/(1 + np.exp(-1*z))
 
-
     def __regularize(self, input):
 
         sumVal = np.sum(abs(input))
@@ -33,7 +36,6 @@ class Neural:
                 val[0] = 0
             else:
                 val[0] = val[0]/sumVal
-
 
     # Input must be of shape (3,1)
     def feedforward(self,input):
@@ -75,13 +77,9 @@ class Neural:
             for j in range(self.HIDDEN_LAYER + 1):
                 self.w2[i][j] = genome[(i*(self.HIDDEN_LAYER + 1)) + j + self.HIDDEN_LAYER*(self.INPUT_LAYER+1)]
 
-
     # This takes Neural object list as input and create new eltie birds
     @classmethod
     def selection(cls,neural_list):
-
-        SELECTION_PERCENTAGE = 0.04
-        POPULATION = 250
 
         elite_birds_copy = []
         elite_birds = neural_list[0:round(SELECTION_PERCENTAGE*POPULATION)]
@@ -94,9 +92,8 @@ class Neural:
         return elite_birds_copy
 
     @classmethod
-    def mutation(cls,neural_object):
+    def mutation(cls, neural_object):
 
-        MUTATION_RATE = 0.04
         gen = neural_object.encode()
 
         for i in range(len(gen)):
@@ -108,9 +105,8 @@ class Neural:
         return new_object
 
     @classmethod
-    def crossover(cls,object1, object2):
+    def crossover(cls, object1, object2):
 
-        CROSSOVER_RATE = 0.04
         gen1 = object1.encode()
         gen2 = object2.encode()
 
@@ -123,16 +119,13 @@ class Neural:
     @classmethod
     def create_new_generation(cls, neural_list):
 
-        MUTATION_RATE = 0.04
-        CROSSOVER_RATE = 0.04
-        POPULATION = 250
         new_generation = []
 
         elite_neural = Neural.selection(neural_list)
         new_generation.extend(elite_neural)
 
         # Apply Mutation for some birds
-        for i in range(round(MUTATION_RATE*100/POPULATION)):
+        for i in range(round(MUTATION_RATE*POPULATION)):
             new_generation.append(Neural.mutation(neural_list[i]))
 
         # Apply Crossover

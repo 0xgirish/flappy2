@@ -2,13 +2,13 @@
 
 class Bird:
 
-    def __init__(self, image, velocity=0, gravity=0.3, jump_speed=6, window_size=(800, 600)):
+    def __init__(self, image, velocity=0, gravity=0.3, jump_speed=6, window_size=(800, 600), y=None):
         self.image = image
         self.frame_no = 0
         self.cycle = True
         self.v = velocity
         self.g = gravity
-        self.y = window_size[1]/2
+        self.y = window_size[1]/2 if y is None else window_size[1]/2 + y
         self.x = 40
         self.jump_speed = jump_speed
 
