@@ -20,6 +20,7 @@ class Flappy:
         self.pipe_image = None
         self.pipes = []
         self.bird_scale = None
+        self.score = 0
 
     def init(self, background, bird_images, pipe_image, bird_scale=(50, 40)):
         self.set_background(background)
@@ -31,17 +32,17 @@ class Flappy:
         pipe_image = pygame.image.load(pipe_image)
         self.pipe_image = pipe_image
 
-    def run(self, print_event=False, filename="data4.txt", clf=None):
+    def run(self, print_event=False, filename1="zeros1.txt", filename2="ones1.txt", clf=None):
         """
         run Flappy game in classic mode
         """
-        file0 = open(filename, "a")
-        file1 = open("ones.txt", "a")
+        file0 = open(filename1, "a")
+        file1 = open(filename2, "a")
 
         crashed = False
 
         freq_pipe = 120
-        is_add = freq_pipe
+        is_add = freq_pipe - 40
 
         data_freq = 20
         is_compl = data_freq
@@ -50,7 +51,7 @@ class Flappy:
 
         self.pipes.append(Pipe(self.pipe_image, x=200))
 
-        action0 = -1
+        # action0 = -1
         action1 = -1
         data = ""
         ones = 0
@@ -100,13 +101,14 @@ class Flappy:
         pygame.quit()
         file1.close()
         file0.close()
+        print("score = {}".format(self.score))
 
     def smart_run(self, clf, mean, std):
 
         crashed = False
 
         freq_pipe = 120
-        is_add = freq_pipe
+        is_add = freq_pipe - 40
 
         # self.pipes.append(Pipe(self.pipe_image, x=0))
         self.pipes.append(Pipe(self.pipe_image, x=200))
@@ -143,6 +145,7 @@ class Flappy:
                 crashed = True
 
         pygame.quit()
+        print("score = {}".format(self.score))
 
     def get_sample(self, mean, std, Is=False):
         pipes = []
@@ -156,10 +159,11 @@ class Flappy:
         else:
             dx, dy = 380, self.bird.y - 100
 
-        sample = "{} {} {} {} {} {} {} {} {}".format(v, dx, dy, v**2, dx**2, dy**2, v**3, dx**3, dy**3)
+        h = self.window_size[1] - self.bird.y
+        sample = "{} {} {} {}".format(v, h, dx, dy)
         if Is:
             return sample
-        sample = np.array([float(x) for x in sample.split()]).reshape(1, -1)[:, :3]
+        sample = np.array([float(x) for x in sample.split()]).reshape(1, -1)
         sample = (sample - mean) / std
         return sample
 
@@ -209,6 +213,7 @@ class Flappy:
         for i in range(no_of_pipes):
             if not self.pipes[i].is_seen():
                 zombie_pipes.append(i)
+                self.score += 1
                 continue
             self.pipes[i].draw(self.display)
 
