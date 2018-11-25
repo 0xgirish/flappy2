@@ -15,7 +15,7 @@ class Pipe:
             self.x = x
         self.v = velocity
         if height is None:
-            self.height = random.randint(100, 380)
+            self.height = random.randint(80, 360)
         else:
             self.height = height
         self.width = width

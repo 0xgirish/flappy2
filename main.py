@@ -15,7 +15,7 @@ def main():
 
     flappy.init(background, bird_images, pipe_image)
     flappy.smart_run(clf, mean, std)
-    # flappy.run(filename="zeros.txt")
+    # flappy.run(filename1="zeros1.txt", filename2="ones1.txt")
 
 
 if __name__ == '__main__':

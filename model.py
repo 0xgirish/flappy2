@@ -11,20 +11,20 @@ def load_data():
     T1 = []
     T0 = []
     l = 1
-    with open("ones.txt", "r") as f:
+    with open("ones1.txt", "r") as f:
         for line in f.readlines():
             split_line = [float(x) for x in line.split()]
-            if len(split_line) != 10:
+            if len(split_line) != 5:
                 print(l)
                 quit()
             l += 1
             T1.append(split_line)
     l = 1
     print("------------")
-    with open("zeros.txt", "r") as f:
+    with open("zeros1.txt", "r") as f:
         for line in f.readlines():
             split_line = [float(x) for x in line.split()]
-            if len(split_line) != 10:
+            if len(split_line) != 5:
                 print(l)
                 quit()
             l += 1
@@ -32,14 +32,14 @@ def load_data():
 
     T1 = np.array(T1)
     T0 = np.array(T0)
-    # T1, T0 = T1[:5000, :], T0[:5000, :]
+    T1, T0 = T1[:6000, :], T0[:8000, :]
     np.random.shuffle(T0)
     length1 = T1.shape[0]
-    T0 = T0[:length1, :]
+    # T0 = T0[:length1, :]
     T = np.append(T1, T0, axis=0)
     np.random.shuffle(T)
     # print(T[0])
-    return T[:, :3], T[:, -1]
+    return T[:, :-1], T[:, -1]
 
 
 def accuracy(y_true, y_predict):
@@ -60,7 +60,7 @@ def model(model):
         tree.export_graphviz(clf, out_file="tree.dot")
     elif model == "svm":
         print("Intializing SVC")
-        clf = SVC(max_iter=5000)
+        clf = SVC(max_iter=10000, C=1.5)
         print("Training...")
         clf.fit(X_t, Y)
         print("completed")
