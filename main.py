@@ -1,21 +1,27 @@
 import os
+import argparse
+import pickle
 
 from Flappy import Flappy
-from model import model
+from model import get_model
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description='provide model by command line flags --model')
+    parser.add_argument("--model", type=str)
+    args = parser.parse_args()
+    return args.model
 
 
 def main():
-
-    clf, mean, std = model("svm")   # decision tree classifier
-    print("training completed")
-    flappy = Flappy(fps=120, no_of_birds=1)
-    bird_images = ["res/img/frame-{}.png".format(i) for i in range(1, 5)]
-    pipe_image = "res/img/pipe.png"
-    background = "res/img/background.png"
-
-    flappy.init(background, bird_images, pipe_image)
-    flappy.smart_run([clf], mean, std, is_collect=False)
-    # flappy.run(filename1="zeros2.txt", filename2="ones2.txt")
+    game = Flappy()
+    game.init()
+    model_name = get_arguments()
+    if model_name.upper() == "GAN":
+        neural_list = get_model(model_name)
+        best_neural = game.smart_run(neural_list)
+        with open("model/gan.model", "wb") as f:
+            pickle.dump(best_neural, f)
 
 
 if __name__ == '__main__':

@@ -1,71 +1,56 @@
 import numpy as np
 
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.svm import LinearSVC
-from sklearn import tree
 from sklearn import preprocessing
+
+from NeuralModel import Neural
+from settings import SVM_DATA_ONES, SVM_DATA_ZEROS, POPULATION
+
+
+def get_data_from_file(filename):
+    destination = []
+    with open(filename, "r") as f:
+        for line in f.readlines():
+            split_line = [float(x) for x in line.split()]
+            destination.apppend(split_line)
+
+    return np.array(destination)
 
 
 def load_data():
-    T1 = []
-    T0 = []
-    l = 1
-    with open("ones1.txt", "r") as f:
-        for line in f.readlines():
-            split_line = [float(x) for x in line.split()]
-            if len(split_line) != 5:
-                print(l)
-                quit()
-            l += 1
-            T1.append(split_line)
-    l = 1
-    print("------------")
-    with open("zeros1.txt", "r") as f:
-        for line in f.readlines():
-            split_line = [float(x) for x in line.split()]
-            if len(split_line) != 5:
-                print(l)
-                quit()
-            l += 1
-            T0.append(split_line)
 
-    T1 = np.array(T1)
-    T0 = np.array(T0)
-    #T1, T0 = T1[:, :], T0[:, :]
-    np.random.shuffle(T0)
-    length1 = T1.shape[0]
-    # T0 = T0[:length1, :]
-    T = np.append(T1, T0, axis=0)
-    np.random.shuffle(T)
-    # print(T[0])
-    return T[:, :-1], T[:, -1]
+    ones = get_data_from_file(SVM_DATA_ONES)
+    zeros = get_data_from_file(SVM_DATA_ZEROS)
+
+    training_data = np.append(ones, zeros, axis=0)
+
+    return training_data[:, :-1], training_data[:, -1]
 
 
-def accuracy(y_true, y_predict):
-    equals = (y_true == y_predict)
-    correct = np.sum(equals)
-    total = len(y_true)
-    return (correct / total) * 100
+def get_model(name="gan"):
+    if name.upper() == "GAN":
+        neural_list = []
+        for _ in range(POPULATION):
+            neural_list.append(Neural())
 
-
-def model(model):
-    X, Y = load_data()
-    X_t = preprocessing.scale(X)
-    print("got X, Y")
-    clf = None
-    if model == "tree":
-        clf = DecisionTreeClassifier(max_depth=400)
+        return neural_list
+    elif name.upper() == "SVM":
+        X, Y = load_data()
+        X_t = preprocessing.scale(X)
+        mean = X.mean(axis=0)
+        std = X.std(axis=0)
+        clf = SVC()
         clf.fit(X_t, Y)
-        tree.export_graphviz(clf, out_file="tree.dot")
-    elif model == "svm":
-        print("Intializing SVC")
-        clf = SVC(max_iter=10000, C=1.5)
-        print("Training...")
+        return clf, mean, std
+    elif name.upper() == "LINEARSVM":
+        X, Y = load_data()
+        X_t = preprocessing.scale(X)
+        mean = X.mean(axis=0)
+        std = X.std(axis=0)
+        clf = LinearSVC()
         clf.fit(X_t, Y)
-        print("completed")
-    elif model == "linearsvm":
-        print("Intializing LinearSVC")
-        clf = LinearSVC(max_iter=5000)
-        clf.fit(X_t, Y)
-    return clf,  X.mean(axis=0), X.std(axis=0)
+        return clf, mean, std
+    else:
+        print("Wrong model")
+        quit()

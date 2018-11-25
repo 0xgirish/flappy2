@@ -1,21 +1,23 @@
+import numpy as np
+
+from settings import BIRD_JUMP_SPEED, IS_BIRD_RANDOM_POS, BIRD_INITIAL_RANGE
+from settings import BIRD_Y_POS, BIRD_X_POS, GRAVITY, PIPE_VELOCITY
 
 
 class Bird:
 
-    def __init__(self, image, velocity=0, gravity=0.3, jump_speed=7.4, window_size=(800, 600), y=None):
-        self.image = image
+    def __init__(self, images):
+        self.image = images
         self.frame_no = 0
         self.cycle = True
-        self.v = velocity
-        self.g = gravity
-        self.y = window_size[1]/2 if y is None else window_size[1]/2 + y
-        self.x = 40
-        self.jump_speed = jump_speed
+        self.v = 0
+        self.g = GRAVITY
+        self.y = np.random.randint(*BIRD_INITIAL_RANGE) if IS_BIRD_RANDOM_POS else BIRD_Y_POS
+        self.x = BIRD_X_POS
 
-    def draw(self, surface, start=True):
-        if start:
-            self.y += self.v
-            self.v += self.g
+    def draw(self, surface):
+        self.y += self.v
+        self.v += GRAVITY
         if self.frame_no < 0:
             self.cycle = True
             self.frame_no = 1
@@ -31,4 +33,10 @@ class Bird:
             self.frame_no -= 1
 
     def jump(self):
-        self.v = -self.jump_speed
+        self.v = -BIRD_JUMP_SPEED
+
+    def reset(self):
+        self.y = np.random.randint(*BIRD_INITIAL_RANGE)
+        self.v = PIPE_VELOCITY
+        self.cycle = True
+        self.frame_no = 0

@@ -3,165 +3,134 @@ import numpy as np
 
 from bird import Bird
 from pipes import Pipe
+from NeuralModel import Neural
+
+from settings import BIRD_IMAGES, PIPE_IMAGE, BACKGROUND, PIPE_VELOCITY
+from settings import BIRD_SCALE, POPULATION, WINDOW_SIZE, FPS, PIPE_WIDTH
+from settings import NO_OF_GENERATIONS, DATA_COLLECTION_FREQ,  PIPE_FREQ
 
 
 class Flappy:
 
-    def __init__(self, window_size=(380, 600), fps=60, no_of_birds=1):
+    def __init__(self):
         pygame.init()
 
-        self.display = pygame.display.set_mode(window_size)
-        pygame.display.set_caption("Smart Flappy")
+        self.display = pygame.display.set_mode(WINDOW_SIZE)
+        pygame.display.set_caption("Smart Flappy Bird")
         self.clock = pygame.time.Clock()
-        self.fps = fps
-        self.window_size = window_size
-        self.background = None
         self.birds = []
-        self.pipe_image = None
         self.pipes = []
-        self.bird_scale = None
         self.score = 0
-        self.no_of_birds = no_of_birds
+        self.fitness = [0 for _ in range(POPULATION)]
+        self.bird_alive = [True for _ in range(POPULATION)]
+        self.pipe_image = None
+        self.background = None
+        self.set_background()
 
-    def init(self, background, bird_images, pipe_image, bird_scale=(50, 40)):
-        self.set_background(background)
+    def init(self):
+        bird_frames = Flappy.get_frames(BIRD_IMAGES)
+        for i in range(POPULATION):
+            self.birds.append(Bird(bird_frames))
 
-        bird_frames = Flappy.get_frames(bird_images, bird_scale)
-        for i in range(self.no_of_birds):
-            self.birds.append(Bird(bird_frames, y=i*50))
-        self.bird_scale = bird_scale
-
-        pipe_image = pygame.image.load(pipe_image)
+        pipe_image = pygame.image.load(PIPE_IMAGE)
         self.pipe_image = pipe_image
 
-    def run(self, print_event=False, filename1="zeros1.txt", filename2="ones1.txt", clf=None):
-        """
-        run Flappy game in classic mode
-        """
-        file0 = open(filename1, "a")
-        file1 = open(filename2, "a")
+    def reset(self):
+        self.pipes = []
+        self.fitness = [0 for _ in range(POPULATION)]
+        self.bird_alive = [True for _ in range(POPULATION)]
+        for i in range(POPULATION):
+            self.birds[i].reset()
 
-        crashed = False
+        self.score = 0
 
-        freq_pipe = 120
-        is_add = freq_pipe - 40
+    def smart_run(self, clf, mean=0, std=1):
 
-        data_freq = 20
-        is_compl = data_freq
+        close = False
 
-        action = -1
+        for j in range(NO_OF_GENERATIONS):
 
-        self.pipes.append(Pipe(self.pipe_image, x=200))
+            crashed = False
+            self.pipes.append(Pipe(self.pipe_image, x=200))
 
-        # action0 = -1
-        action1 = -1
-        data = ""
-        ones = 0
+            freq_pipe = PIPE_FREQ
+            is_add = freq_pipe - 40
 
-        while not crashed:
-            action0 = -1
-            data0 = self.get_sample(Is=True)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+            while (not crashed) and (not close):
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        close = True
+
+                for i in range(POPULATION):
+                    if not self.bird_alive[i]:
+                        continue
+                    sample = self.get_sample(bird_index=i)
+                    action = clf[i].predict(sample)[0]
+                    if action == 1:
+                        self.birds[i].jump()
+
+                if is_add % freq_pipe is 0:
+                    self.pipes.append(Pipe(self.pipe_image))
+                is_add = (is_add + 1) % freq_pipe
+
+                self.draw()
+
+                if self.check_collision():
                     crashed = True
+            print("For generation = {}, score = {}".format(j, self.score))
+            neural_list = self.sorted_clf(clf)
+            clf = Neural.create_new_generation(neural_list)
 
-                if event.type == pygame.KEYDOWN:
-                    data = self.get_sample(0, 1, True)
-                    self.birds[0].jump()
-                    action1 = 1
-                    action0 = 1
+            self.reset()
 
-                if print_event:
-                    print(event)
-
-            if is_compl % data_freq == 0 and clf is not None:
-                clf_action = self.predict(clf)
-                print("action, clf_action = {}, {}".format(action, clf_action))
-
-            if action1 == 1:
-                self.collect_data(file1, action1, data)
-                action1 = -1
-
-            if is_compl % data_freq == 0:
-                if action0 == -1:
-                    self.collect_data(file0, action0, data0)
-                print("no of zeros = {}\r".format(ones))
-                ones += 1
-                action = -1
-
-            is_compl = (is_compl + 1) % data_freq
-
-            if is_add % freq_pipe is 0:
-                self.pipes.append(Pipe(self.pipe_image))
-            is_add = (is_add + 1) % freq_pipe
-
-            self.draw(start=True)
-
-            if self.is_collision():
-                crashed = True
+            if close:
+                break
 
         pygame.quit()
-        file1.close()
-        file0.close()
-        print("score = {}".format(self.score))
+        return clf[0]
 
-    def smart_run(self, clf, mean=0, std=1, filename0="zeros2.txt", filename1="ones2.txt", is_collect=True):
+    def sorted_clf(self, clf):
+        fitness_clf = dict()
+        for i in range(POPULATION):
+            fitness_clf[clf[i]] = self.fitness[i]
 
-        file0 = open(filename0, "a")
-        file1 = open(filename1, "a")
+        sorted_neural = sorted(fitness_clf.items(), key=lambda kv: kv[1])
+        sorted_neural = sorted_neural[-1::-1]
+        clf_sorted = []
+        for i in range(POPULATION):
+            clf_sorted.append(sorted_neural[i][0])
 
-        crashed = False
+        return clf_sorted
 
-        freq_pipe = 120
-        is_add = freq_pipe - 40
+    def check_collision(self):
+        pipes = []
+        for pipe in self.pipes:
+            if pipe.x + PIPE_WIDTH <= 0:
+                continue
+            pipes.append(pipe)
+        if len(pipes) == 1:
+            pipes = [pipes[0].x, 800]
+        else:
+            pipes = [pipes[0].x, pipes[1].x]
+        not_alive = 0
+        for i in range(POPULATION):
+            if self.bird_alive[i]:
+                if self.is_collision(i):
+                    self.bird_alive[i] = False
+                    for_pipe_1 = pipes[0] - self.birds[i].x
+                    for_pipe_2 = pipes[1] - self.birds[i].x
+                    nearest = for_pipe_1 if abs(for_pipe_1) < abs(for_pipe_2) else for_pipe_2
+                    self.fitness[i] -= nearest
+                    not_alive += 1
+            else:
+                not_alive += 1
 
-        # self.pipes.append(Pipe(self.pipe_image, x=0))
-        self.pipes.append(Pipe(self.pipe_image, x=200))
-        # self.bird.v = -7
-
-        data_freq = 20
-        is_compl = data_freq
-
-        while not crashed:
-            action0 = -1
-            data0 = self.get_sample(Is=True)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    crashed = True
-
-            for i in range(self.no_of_birds):
-                sample = self.get_sample(bird_index=i, mean=mean, std=std)
-                action = clf[i].predict(sample)[0]
-                if action == 1:
-                    action0 = 1
-                    data = self.get_sample(Is=True)
-                    if is_collect:
-                        self.collect_data(file1, action, data)
-                    self.birds[i].jump()
-
-            if is_compl % data_freq == 0:
-                if action0 == -1 and is_collect:
-                    self.collect_data(file0, action0, data0)
-                print("score = {}\r".format(self.score))
-
-            if is_add % freq_pipe is 0:
-                self.pipes.append(Pipe(self.pipe_image))
-            is_add = (is_add + 1) % freq_pipe
-
-            self.draw(True)
-
-            if self.is_collision():
-                crashed = True
-
-        pygame.quit()
-        file1.close()
-        file0.close()
-        print("score = {}".format(self.score))
+        return not_alive == POPULATION
 
     def get_sample(self, mean=0, std=1, Is=False, bird_index=0):
         pipes = []
         for pipe in self.pipes:
-            if pipe.x + pipe.width + 10 < self.birds[bird_index].x:
+            if pipe.x + PIPE_WIDTH + 10 < self.birds[bird_index].x:
                 continue
             pipes.append(pipe)
         v = self.birds[bird_index].v
@@ -170,13 +139,13 @@ class Flappy:
         else:
             dx, dy = 380, self.birds[bird_index].y - 100
 
-        h = self.window_size[1] - self.birds[bird_index].y
+        h = WINDOW_SIZE[1] - self.birds[bird_index].y
         sample = "{} {} {} {}".format(v, h, dx, dy)
         if Is:
             return sample
         sample = np.array([float(x) for x in sample.split()]).reshape(1, -1)
         sample = (sample - mean) / std
-        return sample
+        return sample.T
 
     def predict(self, clf, mean, std):
         sample = self.get_sample(mean, std)
@@ -184,37 +153,36 @@ class Flappy:
         # print("action = {}".format(action_p))
         return action_p
 
-    def collect_data(self, file, action, data):
+    def collect_data(self, file, data, action):
         line = "{} {}\n".format(data, action)
         file.write(line)
 
     def is_collision(self, bird_index=0):
-        if self.birds[bird_index].y + self.bird_scale[1] > self.window_size[1]:
+        if self.birds[bird_index].y + BIRD_SCALE[1] > WINDOW_SIZE[1]:
             return True
 
         if self.birds[bird_index].y < 0:
             return True
 
         for pipe in self.pipes:
-            if pipe.is_touching(self.birds[bird_index], self.bird_scale):
+            if pipe.is_touching(self.birds[bird_index]):
                 return True
         else:
             return False
 
-
-
-
-    def draw(self, start):
+    def draw(self):
         """
         draw background, bird and pipes, update display
         """
         self.display.blit(self.background, (0, 0))
-        for i in range(self.no_of_birds):
-            self.birds[i].draw(self.display, start)
+        for i in range(POPULATION):
+            if self.bird_alive[i]:
+                self.fitness[i] += PIPE_VELOCITY
+                self.birds[i].draw(self.display)
         self.draw_pipes()
 
         pygame.display.update()
-        self.clock.tick(self.fps)
+        self.clock.tick(FPS)
 
     def draw_pipes(self):
         """
@@ -233,7 +201,7 @@ class Flappy:
             self.pipes.pop(index)
 
     @staticmethod
-    def get_frames(images, scale):
+    def get_frames(images):
         """
         :param images: bird frame images list
         :param scale: bird image scale
@@ -242,15 +210,15 @@ class Flappy:
         frames = []
         for image in images:
             frame = pygame.image.load(image)
-            frame = pygame.transform.scale(frame, scale)
+            frame = pygame.transform.scale(frame, BIRD_SCALE)
             frames.append(frame)
 
         return frames
 
-    def set_background(self, background):
+    def set_background(self):
         """
         :param background: background image address
         """
-        background = pygame.image.load(background)
-        background = pygame.transform.scale(background, self.window_size)
+        background = pygame.image.load(BACKGROUND)
+        background = pygame.transform.scale(background, WINDOW_SIZE)
         self.background = background
