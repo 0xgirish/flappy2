@@ -7,7 +7,7 @@
 ###########################################
 POPULATION = 10
 
-MUTATION_RATE = 0.3
+MUTATION_RATE = 0.2
 
 CROSSOVER_RATE = 0.8
 
@@ -31,7 +31,12 @@ DATA_PATH = "data/"
 WINDOW_SIZE = (380, 600)
 GRAVITY = 0.3
 BACKGROUND = "res/img/background.png"
-FPS = 120
+FPS = 180
+
+FONT = "res/fonts/FreeSansBold.ttf"
+FONT_SIZE = 40
+FONT_COLOR = (255, 255, 255)
+TEXT_CENTER = (int(WINDOW_SIZE[0]/2), 140)
 
 BIRD_JUMP_SPEED = 6
 BIRD_SCALE = (50, 40)
@@ -53,4 +58,4 @@ PIPE_FREQ = 120
 SVM_DATA_ONES = "data/ones.txt"
 SVM_DATA_ZEROS = "data/zeros.txt"
 
-DATA_COLLECTION_FREQ = 20
+DATA_COLLECTION_FREQ = 10

@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 from sklearn.svm import SVC
 from sklearn.svm import LinearSVC
@@ -13,7 +14,7 @@ def get_data_from_file(filename):
     with open(filename, "r") as f:
         for line in f.readlines():
             split_line = [float(x) for x in line.split()]
-            destination.apppend(split_line)
+            destination.append(split_line)
 
     return np.array(destination)
 
@@ -42,7 +43,7 @@ def get_model(name="gan"):
         std = X.std(axis=0)
         clf = SVC()
         clf.fit(X_t, Y)
-        return clf, mean, std
+        return [clf], mean, std
     elif name.upper() == "LINEARSVM":
         X, Y = load_data()
         X_t = preprocessing.scale(X)
@@ -50,7 +51,12 @@ def get_model(name="gan"):
         std = X.std(axis=0)
         clf = LinearSVC()
         clf.fit(X_t, Y)
-        return clf, mean, std
+        return [clf], mean, std
+    elif name.lower() == "gan-collect":
+        clf = None
+        with open("model/gan.model", "rb") as f:
+            clf = pickle.load(f)
+        return [clf], 0, 1
     else:
         print("Wrong model")
         quit()

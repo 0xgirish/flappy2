@@ -5,9 +5,10 @@ from bird import Bird
 from pipes import Pipe
 from NeuralModel import Neural
 
-from settings import BIRD_IMAGES, PIPE_IMAGE, BACKGROUND, PIPE_VELOCITY
-from settings import BIRD_SCALE, POPULATION, WINDOW_SIZE, FPS, PIPE_WIDTH
-from settings import NO_OF_GENERATIONS, DATA_COLLECTION_FREQ,  PIPE_FREQ
+from settings import BIRD_IMAGES, PIPE_IMAGE, BACKGROUND, PIPE_VELOCITY, TEXT_CENTER
+from settings import BIRD_SCALE, POPULATION, WINDOW_SIZE, FPS, PIPE_WIDTH, FONT_COLOR
+from settings import NO_OF_GENERATIONS, DATA_COLLECTION_FREQ,  PIPE_FREQ, FONT, FONT_SIZE
+from settings import SVM_DATA_ONES, SVM_DATA_ZEROS
 
 
 class Flappy:
@@ -25,6 +26,7 @@ class Flappy:
         self.bird_alive = [True for _ in range(POPULATION)]
         self.pipe_image = None
         self.background = None
+        self.font = None
         self.set_background()
 
     def init(self):
@@ -34,6 +36,7 @@ class Flappy:
 
         pipe_image = pygame.image.load(PIPE_IMAGE)
         self.pipe_image = pipe_image
+        self.font = pygame.font.Font(FONT, FONT_SIZE)
 
     def reset(self):
         self.pipes = []
@@ -44,7 +47,10 @@ class Flappy:
 
         self.score = 0
 
-    def smart_run(self, clf, mean=0, std=1):
+    def smart_run(self, clf, mean=0, std=1, collect=False, svm=False):
+
+        file0 = open(SVM_DATA_ZEROS, "a")
+        file1 = open(SVM_DATA_ONES, "a")
 
         close = False
 
@@ -56,7 +62,12 @@ class Flappy:
             freq_pipe = PIPE_FREQ
             is_add = freq_pipe - 40
 
+            data_freq = DATA_COLLECTION_FREQ
+            is_collect = data_freq
+
             while (not crashed) and (not close):
+                action = -1
+                data = self.get_sample(Is=True, mean=mean, std=std)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         close = True
@@ -64,10 +75,17 @@ class Flappy:
                 for i in range(POPULATION):
                     if not self.bird_alive[i]:
                         continue
-                    sample = self.get_sample(bird_index=i)
+                    sample = self.get_sample(bird_index=i, mean=mean, std=std)
                     action = clf[i].predict(sample)[0]
                     if action == 1:
+                        if not svm:
+                            self.collect_data(file1, data, action)
                         self.birds[i].jump()
+
+                if is_collect % data_freq == 0 and not svm:
+                    if action == -1:
+                        self.collect_data(file0, data, action)
+                is_collect = (is_collect + 1) % data_freq
 
                 if is_add % freq_pipe is 0:
                     self.pipes.append(Pipe(self.pipe_image))
@@ -77,9 +95,13 @@ class Flappy:
 
                 if self.check_collision():
                     crashed = True
-            print("For generation = {}, score = {}".format(j, self.score))
-            neural_list = self.sorted_clf(clf)
-            clf = Neural.create_new_generation(neural_list)
+
+            if not svm:
+                neural_list, fitness = self.sorted_clf(clf)
+                clf = Neural.create_new_generation(neural_list)
+            else:
+                fitness = self.fitness[0]
+            print("Generation = {}, fitness = {}".format(j, fitness))
 
             self.reset()
 
@@ -87,6 +109,10 @@ class Flappy:
                 break
 
         pygame.quit()
+
+        file0.close()
+        file1.close()
+
         return clf[0]
 
     def sorted_clf(self, clf):
@@ -100,7 +126,7 @@ class Flappy:
         for i in range(POPULATION):
             clf_sorted.append(sorted_neural[i][0])
 
-        return clf_sorted
+        return clf_sorted, sorted_neural[0][1]
 
     def check_collision(self):
         pipes = []
@@ -180,7 +206,7 @@ class Flappy:
                 self.fitness[i] += PIPE_VELOCITY
                 self.birds[i].draw(self.display)
         self.draw_pipes()
-
+        self.score_display()
         pygame.display.update()
         self.clock.tick(FPS)
 
@@ -199,6 +225,12 @@ class Flappy:
 
         for index in zombie_pipes:
             self.pipes.pop(index)
+
+    def score_display(self):
+        text_surface = self.font.render(str(self.score), True, FONT_COLOR)
+        text_rect = text_surface.get_rect()
+        text_rect.center =TEXT_CENTER
+        self.display.blit(text_surface, text_rect)
 
     @staticmethod
     def get_frames(images):
