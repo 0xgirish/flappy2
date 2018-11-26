@@ -7,7 +7,7 @@
 ###########################################
 POPULATION = 10
 
-MUTATION_RATE = 0.2
+MUTATION_RATE = 0.3
 
 CROSSOVER_RATE = 0.8
 
@@ -23,7 +23,7 @@ HIDDEN_LAYER = 6
 
 OUTPUT_LAYER = 1
 
-NO_OF_GENERATIONS = 100
+NO_OF_GENERATIONS = 500
 #############################################
 
 DATA_PATH = "data/"
