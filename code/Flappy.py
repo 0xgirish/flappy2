@@ -13,21 +13,25 @@ from settings import SVM_DATA_ONES, SVM_DATA_ZEROS
 
 class Flappy:
 
-    def __init__(self):
+    def __init__(self, model="gan"):
         pygame.init()
-
+        global POPULATION
         self.display = pygame.display.set_mode(WINDOW_SIZE)
         pygame.display.set_caption("Smart Flappy Bird")
         self.clock = pygame.time.Clock()
         self.birds = []
         self.pipes = []
         self.score = 0
+        if model != "gan":
+            POPULATION = 1
         self.fitness = [0 for _ in range(POPULATION)]
         self.bird_alive = [True for _ in range(POPULATION)]
         self.pipe_image = None
         self.background = None
         self.font = None
+        self.model = model
         self.set_background()
+
 
     def init(self):
         bird_frames = Flappy.get_frames(BIRD_IMAGES)
@@ -47,14 +51,18 @@ class Flappy:
 
         self.score = 0
 
-    def smart_run(self, clf, mean=0, std=1, collect=False, svm=False):
+    def smart_run(self, clf, mean=0, std=1):
 
         file0 = open(SVM_DATA_ZEROS, "a")
         file1 = open(SVM_DATA_ONES, "a")
 
         close = False
 
-        for j in range(NO_OF_GENERATIONS):
+        no_of_gen = NO_OF_GENERATIONS
+        if self.model.lower() != "gan":
+            no_of_gen = 1
+
+        for j in range(no_of_gen):
 
             crashed = False
             self.pipes.append(Pipe(self.pipe_image, x=200))
@@ -78,11 +86,11 @@ class Flappy:
                     sample = self.get_sample(bird_index=i, mean=mean, std=std)
                     action = clf[i].predict(sample)[0]
                     if action == 1:
-                        if not svm:
+                        if self.model.lower() == "gan-collect":
                             self.collect_data(file1, data, action)
                         self.birds[i].jump()
 
-                if is_collect % data_freq == 0 and not svm:
+                if is_collect % data_freq == 0 and self.model.lower() == "gan-collect":
                     if action == -1:
                         self.collect_data(file0, data, action)
                 is_collect = (is_collect + 1) % data_freq
@@ -96,7 +104,7 @@ class Flappy:
                 if self.check_collision():
                     crashed = True
 
-            if not svm:
+            if self.model.lower() == "gan":
                 neural_list, fitness = self.sorted_clf(clf)
                 clf = Neural.create_new_generation(neural_list)
             else:
@@ -170,7 +178,11 @@ class Flappy:
         if Is:
             return sample
         sample = np.array([float(x) for x in sample.split()]).reshape(1, -1)
-        sample = (sample - mean) / std
+        if self.model.lower()[:3] != "gan":
+            if self.model.lower() == "linearsvm":
+                sample = np.hstack([sample, sample**2, sample**3])
+            sample = (sample - mean) / std
+            return sample
         return sample.T
 
     def predict(self, clf, mean, std):

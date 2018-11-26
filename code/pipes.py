@@ -3,7 +3,7 @@ import pygame
 from numpy import random
 
 from settings import PIPE_VELOCITY, PIPE_WIDTH, PIPE_GAP, PIPE_HEIGHT
-from settings import IS_PIPE_VERTICAL_VELOCITY, WINDOW_SIZE, BIRD_SCALE
+from settings import WINDOW_SIZE, BIRD_SCALE
 
 
 class Pipe:

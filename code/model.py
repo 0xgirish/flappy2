@@ -46,6 +46,7 @@ def get_model(name="gan"):
         return [clf], mean, std
     elif name.upper() == "LINEARSVM":
         X, Y = load_data()
+        X = np.hstack([X, X**2, X**3])
         X_t = preprocessing.scale(X)
         mean = X.mean(axis=0)
         std = X.std(axis=0)
@@ -58,5 +59,10 @@ def get_model(name="gan"):
             clf = pickle.load(f)
         return [clf], 0, 1
     else:
-        print("Wrong model")
+        print("please specify model")
+        print("python main.py --model your-choice")
+        print("\tchoices")
+        print("\t1. svm")
+        print("\t2. GAN")
+        print("\t3. linearsvm")
         quit()
